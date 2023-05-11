@@ -19,38 +19,37 @@
 
 // MUDAR SENHA WIFI (SSID) PASSWORD
 
-const char *SSID = "";     // Nome da Minha rede Wifi
-const char *PASSWORD = ""; // Senha da Minha rede Wifi
+const char *SSID = "Antonio Jose";     // Nome da Minha rede Wifi
+const char *PASSWORD = "KTP820#tr"; // Senha da Minha rede Wifi
 
 // IP E PORTA DO SERVIDOR MQTT
-const char *BROKER_MQTT = ""; // Endereço do Servidor Broker;
-int BROKER_PORT = 1883;       // Porta do Servidor
+const char *BROKER_MQTT = "34.229.145.165"; // Endereço do Servidor Broker;
+int BROKER_PORT = 1883;                     // Porta do Servidor
 
 // USUARIO E SENHA DO SERVIDOR MQTT
 
-const char *User_MQTT = ""; // Usuario MQTT
-const char *Pass_MQTT = ""; // Senha MQTT
+const char *User_MQTT = "autohome"; // Usuario MQTT
+const char *Pass_MQTT = "comida05"; // Senha MQTT
 
 // PINOS DO RELE
-int Rele1 = 6;
-int Rele2 = 5;
-int Rele3 = 4;
-int Rele4 = 3;
+int Rele1 = 16;
+int Rele2 = 15;
+int Rele3 = 14;
+int Rele4 = 13;
 
 int Contagem = 0;
 
 WiFiClient espClient;         // Cria o objeto espClient
 PubSubClient MQTT(espClient); // Instancia o Cliente MQTT passando o objeto espClient
 
-void mqtt_callback(char *topic, byte *payload, unsigned int length);
 
 void setup()
 {
   // put your setup code here, to run once:
   InitPinos();
-  InitSerial();
-  initWiFi();
-  initMQTT();
+  InitSerial(); 
+  initWiFi();   
+  initMQTT(); 
 }
 
 void loop()
@@ -59,6 +58,7 @@ void loop()
   // func_Teste();
   verificaConexaoWIFIMQTT(); // Verifica Conexão WIFI MQTT
   MQTT.loop();
+  mqtt_callback;
   delay(1000);
 }
 
@@ -100,24 +100,27 @@ void initMQTT()
   MQTT.setCallback(mqtt_callback);
 }
 
-void mqtt_callback(char *topic, byte *payload, unsigned int length)
-{
 
+void mqtt_callback(char* topic, byte* payload, unsigned int length){
+
+  
   String msg;
+  
+     //obtem a string do payload recebido
+    for(int i = 0; i < length; i++) 
+    {
+       char c = (char)payload[i];
+       msg += c;
+    } 
 
-  // obtem a string do payload recebido
-  for (int i = 0; i < length; i++)
-  {
-    char c = (char)payload[i];
-    msg += c;
-  }
 
-  Serial.print("Topico: ");
-  Serial.println(topic);
-  Serial.print("Mensagem: ");
-  Serial.println(msg);
+    Serial.print("Topico ");
+    Serial.println(topic);
+    Serial.print("Mensagem ");
+    Serial.println(msg);
 
-  if (strcmp(topic, TOPICO_SUB_1) == 0)
+
+   if (strcmp(topic, TOPICO_SUB_1) == 0)
   {
     if (msg == "0")
     {
@@ -137,14 +140,14 @@ void mqtt_callback(char *topic, byte *payload, unsigned int length)
     if (msg == "0")
     {
       digitalWrite(Rele2, 0);
-      Serial.println("Status: Rele2 desligado");
       MQTT.publish(TOPICO_PUB_2, 0, false, "0");
+      Serial.println("Status: Rele2 desligado");
     }
     else
     {
       digitalWrite(Rele2, 1);
-      Serial.println("Status: Rele1 Ligou");
       MQTT.publish(TOPICO_PUB_2, 0, false, "1");
+      Serial.println("Status: Rele1 Ligou");
     }
   }
   else if (strcmp(topic, TOPICO_SUB_3) == 0)
@@ -152,14 +155,14 @@ void mqtt_callback(char *topic, byte *payload, unsigned int length)
     if (msg == "0")
     {
       digitalWrite(Rele3, 0);
-      Serial.println("Status: Rele3 desligado");
       MQTT.publish(TOPICO_PUB_3, 0, false, "0");
+      Serial.println("Status: Rele3 desligado");
     }
     else
     {
       digitalWrite(Rele3, 1);
-      Serial.println("Status: Rele3 Ligou");
       MQTT.publish(TOPICO_PUB_3, 0, false, "1");
+      Serial.println("Status: Rele3 Ligou");
     }
   }
   else if (strcmp(topic, TOPICO_SUB_4) == 0)
@@ -167,16 +170,17 @@ void mqtt_callback(char *topic, byte *payload, unsigned int length)
     if (msg == "0")
     {
       digitalWrite(Rele4, 0);
-      Serial.println("Status: Rele4 desligado");
       MQTT.publish(TOPICO_PUB_4, 0, false, "0");
+      Serial.println("Status: Rele4 desligado");
     }
     else
     {
       digitalWrite(Rele4, 1);
-      Serial.println("Status: Rele4 Ligou");
       MQTT.publish(TOPICO_PUB_4, 0, false, "1");
+      Serial.println("Status: Rele4 Ligou");
     }
   }
+
 }
 
 void verificaConexaoWIFIMQTT()
