@@ -19,17 +19,17 @@
 
 // MUDAR SENHA WIFI (SSID) PASSWORD
 
-const char *SSID = "Antonio Jose";     // Nome da Minha rede Wifi
-const char *PASSWORD = "KTP820#tr"; // Senha da Minha rede Wifi
+const char *SSID = "";     // Nome da Minha rede Wifi
+const char *PASSWORD = ""; // Senha da Minha rede Wifi
 
 // IP E PORTA DO SERVIDOR MQTT
-const char *BROKER_MQTT = "34.229.145.165"; // Endereço do Servidor Broker;
+const char *BROKER_MQTT = ""; // Endereço do Servidor Broker;
 int BROKER_PORT = 1883;                     // Porta do Servidor
 
 // USUARIO E SENHA DO SERVIDOR MQTT
 
-const char *User_MQTT = "autohome"; // Usuario MQTT
-const char *Pass_MQTT = "comida05"; // Senha MQTT
+const char *User_MQTT = ""; // Usuario MQTT
+const char *Pass_MQTT = ""; // Senha MQTT
 
 // PINOS DO RELE
 int Rele1 = 16;
