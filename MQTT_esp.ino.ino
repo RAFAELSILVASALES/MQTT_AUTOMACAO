@@ -42,24 +42,58 @@ int Contagem = 0;
 WiFiClient espClient;         // Cria o objeto espClient
 PubSubClient MQTT(espClient); // Instancia o Cliente MQTT passando o objeto espClient
 
-
-void setup()
+// Inicializar a comunicação wifi
+void initWiFi()
 {
-  // put your setup code here, to run once:
-  InitPinos();
-  InitSerial(); 
-  initWiFi();   
-  initMQTT(); 
+  delay(10);
+  Serial.println("--|Conexao WI-FI--|");
+  Serial.print("--|Conectando-se na rede--|: ");
+  Serial.println(SSID);
+  Serial.println("--Aguarde--");
+
+  reconectWiFi();
 }
 
-void loop()
+
+void reconnectMQTT()
 {
-  // put your main code here, to run repeatedly:
-  // func_Teste();
-  verificaConexaoWIFIMQTT(); // Verifica Conexão WIFI MQTT
-  MQTT.loop();
-  mqtt_callback;
-  delay(1000);
+
+  //  String clientName = WiFi.macAddress();
+
+  while (!MQTT.connected())
+  {
+    Serial.print("  ---Tentando se conectar ao Broker MQTT---");
+    Serial.println(BROKER_MQTT);
+    if (MQTT.connect("servidor_iot_esp", User_MQTT, Pass_MQTT))
+    {
+      Serial.println("---Conectado com sucesso ao broker MQTT---");
+      MQTT.subscribe(TOPICO_SUB_1);
+      MQTT.subscribe(TOPICO_SUB_2);
+      MQTT.subscribe(TOPICO_SUB_3);
+      MQTT.subscribe(TOPICO_SUB_4);
+    }
+    else
+    {
+      Serial.println("---Falha ao reconectar no broker---");
+      Serial.println("----Havera nova tentatica de conexao em 2s---");
+      delay(2000);
+    }
+  }
+}
+
+// Inicializar a comunicação serial
+void InitSerial()
+{
+  Serial.begin(115200);
+}
+
+// Inicializar a comunicação wifi
+
+// Inicializar a comunicação mqtt
+void initMQTT()
+{
+  MQTT.setServer(BROKER_MQTT, BROKER_PORT);
+  MQTT.setCallback(mqtt_callback);
 }
 
 // Inicializar os Pinos
@@ -75,113 +109,6 @@ void InitPinos()
   digitalWrite(Rele4, LOW);
 }
 
-// Inicializar a comunicação serial
-void InitSerial()
-{
-  Serial.begin(115200);
-}
-
-// Inicializar a comunicação wifi
-void initWiFi()
-{
-  delay(10);
-  Serial.println("Conexao WI-FI");
-  Serial.print("Conectando-se na rede: ");
-  Serial.println(SSID);
-  Serial.println("Aguarde");
-
-  reconectWiFi();
-}
-
-// Inicializar a comunicação mqtt
-void initMQTT()
-{
-  MQTT.setServer(BROKER_MQTT, BROKER_PORT);
-  MQTT.setCallback(mqtt_callback);
-}
-
-
-void mqtt_callback(char* topic, byte* payload, unsigned int length){
-
-  
-  String msg;
-  
-     //obtem a string do payload recebido
-    for(int i = 0; i < length; i++) 
-    {
-       char c = (char)payload[i];
-       msg += c;
-    } 
-
-
-    Serial.print("Topico ");
-    Serial.println(topic);
-    Serial.print("Mensagem ");
-    Serial.println(msg);
-
-
-   if (strcmp(topic, TOPICO_SUB_1) == 0)
-  {
-    if (msg == "0")
-    {
-      digitalWrite(Rele1, 0);
-      MQTT.publish(TOPICO_PUB_1, 0, false, "0");
-      Serial.println("Status: Rele1 desligado!");
-    }
-    else
-    {
-      digitalWrite(Rele1, 1);
-      MQTT.publish(TOPICO_PUB_1, 0, false, "1");
-      Serial.println("Status: Rele1 Ligou");
-    }
-  }
-  else if (strcmp(topic, TOPICO_SUB_2) == 0)
-  {
-    if (msg == "0")
-    {
-      digitalWrite(Rele2, 0);
-      MQTT.publish(TOPICO_PUB_2, 0, false, "0");
-      Serial.println("Status: Rele2 desligado");
-    }
-    else
-    {
-      digitalWrite(Rele2, 1);
-      MQTT.publish(TOPICO_PUB_2, 0, false, "1");
-      Serial.println("Status: Rele1 Ligou");
-    }
-  }
-  else if (strcmp(topic, TOPICO_SUB_3) == 0)
-  {
-    if (msg == "0")
-    {
-      digitalWrite(Rele3, 0);
-      MQTT.publish(TOPICO_PUB_3, 0, false, "0");
-      Serial.println("Status: Rele3 desligado");
-    }
-    else
-    {
-      digitalWrite(Rele3, 1);
-      MQTT.publish(TOPICO_PUB_3, 0, false, "1");
-      Serial.println("Status: Rele3 Ligou");
-    }
-  }
-  else if (strcmp(topic, TOPICO_SUB_4) == 0)
-  {
-    if (msg == "0")
-    {
-      digitalWrite(Rele4, 0);
-      MQTT.publish(TOPICO_PUB_4, 0, false, "0");
-      Serial.println("Status: Rele4 desligado");
-    }
-    else
-    {
-      digitalWrite(Rele4, 1);
-      MQTT.publish(TOPICO_PUB_4, 0, false, "1");
-      Serial.println("Status: Rele4 Ligou");
-    }
-  }
-
-}
 
 void verificaConexaoWIFIMQTT()
 {
@@ -202,38 +129,97 @@ void reconectWiFi()
   while (WiFi.status() != WL_CONNECTED)
   {
     delay(200);
-    Serial.print("Aguarde estabelecendo conexão");
+    Serial.print("-----Aguarde estabelecendo conexão------");
   }
 
   Serial.println();
-  Serial.print("Conectado com sucesso na rede ");
+  Serial.print("----Conectado com sucesso na rede ------");
   Serial.println(SSID);
   Serial.print("Meu IP: ");
   Serial.println(WiFi.localIP());
 }
 
-void reconnectMQTT()
+
+void setup()
 {
+  // put your setup code here, to run once:
+  InitPinos();
+  InitSerial(); 
+  initWiFi();   
+  initMQTT(); 
+}
 
-  //  String clientName = WiFi.macAddress();
 
-  while (!MQTT.connected())
+
+  void mqtt_callback(char* topic, byte* payload, unsigned int length)
   {
-    Serial.print("  Tentando se conectar ao Broker MQTT");
-    Serial.println(BROKER_MQTT);
-    if (MQTT.connect("servidor_iot_esp", User_MQTT, Pass_MQTT))
+
+  
+  String msg;
+  
+     //obtem a string do payload recebido
+    for(int i = 0; i < length; i++) 
     {
-      Serial.println("Conectado com sucesso ao broker MQTT");
-      MQTT.subscribe(TOPICO_SUB_1);
-      MQTT.subscribe(TOPICO_SUB_2);
-      MQTT.subscribe(TOPICO_SUB_3);
-      MQTT.subscribe(TOPICO_SUB_4);
+       char c = (char)payload[i];
+       msg += c;
+    } 
+
+
+    Serial.print("Topico ");
+    Serial.println(topic);
+    Serial.print("Mensagem ");
+    Serial.println(msg);
+
+
+    if (strcmp(topic, TOPICO_SUB_1) == 0){
+      if (msg == "0"){
+        digitalWrite(Rele1 , 0);
+        MQTT.publish(TOPICO_PUB_1, 0, false, "0");
+        Serial.println("Desligou Rele 1");
+      }else{
+        digitalWrite(Rele1 , 1);
+        MQTT.publish(TOPICO_PUB_1, 0, false, "1");
+        Serial.println("Ligou Rele 1");
+      }
+    }else if (strcmp(topic, TOPICO_SUB_2) == 0){
+      if (msg == "0"){
+        digitalWrite(Rele2 , 0);
+        Serial.println("Desligou Rele 2");
+        MQTT.publish(TOPICO_PUB_2, 0, false, "1");
+      }else{
+        digitalWrite(Rele2 , 1);
+        Serial.println("Ligou Rele 2");
+        MQTT.publish(TOPICO_PUB_2, 0, false, "1");
+      }
+    }else if (strcmp(topic, TOPICO_SUB_3) == 0){
+      if (msg == "0"){
+        digitalWrite(Rele3 , 0);
+        Serial.println("Desligou Rele 3");
+        MQTT.publish(TOPICO_PUB_3, 0, false, "1");
+      }else{
+        digitalWrite(Rele3, 1);
+        Serial.println("Ligou Rele 3");
+        MQTT.publish(TOPICO_PUB_3, 0, false, "1");
+      }
+    }else if (strcmp(topic, TOPICO_SUB_4) == 0){
+      if (msg == "0"){
+        digitalWrite(Rele4 , 0);
+        Serial.println("Desligou Rele 2");
+        MQTT.publish(TOPICO_PUB_4, 0, false, "1");
+      }else{
+        digitalWrite(Rele4 , 1);
+        Serial.println("Ligou Rele 2");
+        MQTT.publish(TOPICO_PUB_4, 0, false, "1");
+      }
     }
-    else
-    {
-      Serial.println("Falha ao reconectar no broker");
-      Serial.println("Havera nova tentatica de conexao em 2s");
-      delay(2000);
-    }
-  }
+
+}
+
+void loop()
+{
+  
+  verificaConexaoWIFIMQTT(); // Verifica Conexão WIFI MQTT
+  MQTT.loop();
+  mqtt_callback;
+  delay(1000);
 }
