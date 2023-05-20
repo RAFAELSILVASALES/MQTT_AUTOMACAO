@@ -1,33 +1,64 @@
+
 #include <ESP8266WiFi.h>
+#include <WiFiClientSecure.h>
+#include <UniversalTelegramBot.h>
+#include <ArduinoJson.h>
 #include <PubSubClient.h>
 
-//****************************************
-//  Dispositivo de Controle de Iluminação
-//  Sub -> (Comando = 1, Comando = 0) -> Se (Comando == 1) Liga Lampada, Se (Comando == 0) Desliga Lampada
-//  Pub -> (Comando = 1, Comando = 0) -> Se (Comando == 1) Respota "On", Se (Comando == 0) Respota "Off"
-//****************************************
+#define BOT_TOKEN "6096150204:AAG4ldebIbL12Vhp5WtqlfGZFTFSArH10HM"
 
 #define TOPICO_SUB_1 "/uema/gas/0201"
 
-#define TOPICO_PUB_1 "/uema/res/0201"
+#define TOPICO_PUB_1 "/uema/gas/0201"
+#define TOPICO_PUB_2 "/uema/carga/0201"
 
-// MUDAR SENHA WIFI (SSID) PASSWORD
+const char* SSID = "esp";        // Nome da Minha rede Wifi
+const char* PASSWORD  = "euseiasenha";
 
-const char *SSID = "";     // Nome da Minha rede Wifi
-const char *PASSWORD = ""; // Senha da Minha rede Wifi
+// Use @myidbot (IDBot) to find out the chat ID of an individual or a group
+// Also note that you need to click "start" on a bot before it can
+// message you
+#define CHAT_ID "1071945597"
+bool flag = 1;
+
+bool status_gas = false;
+bool old_status_gas = false;
+
+
+X509List cert(TELEGRAM_CERTIFICATE_ROOT);
+WiFiClientSecure secured_client;
+UniversalTelegramBot bot(BOT_TOKEN, secured_client);
+
+void bot_telegram() {
+  
+  secured_client.setTrustAnchors(&cert); // Add root certificate for api.telegram.or
+
+  Serial.print("Retrieving time: ");
+  configTime(0, 0, "pool.ntp.org"); // get UTC time via NTP
+  time_t now = time(nullptr);
+  while (now < 24 * 3600)
+  {
+    Serial.print(".");
+    delay(100);
+    now = time(nullptr);
+  }
+  Serial.println(now);
+
+  bot.sendMessage(CHAT_ID, "Olá, eu sou o Bot de Alerta de Vazamento de Gás! Meu objetivo é garantir que você fique seguro e protegido de vazamentos de gás perigosos. Comigo, você pode ter a tranquilidade de saber que será informado instantaneamente se for detectado qualquer vazamento em sua área. Então, fique tranquilo e deixe que eu cuide da sua segurança.", "");
+}
 
 // IP E PORTA DO SERVIDOR MQTT
-const char *BROKER_MQTT = ""; // Endereço do Servidor Broker;
+const char *BROKER_MQTT = "34.229.145.165"; // Endereço do Servidor Broker;
 int BROKER_PORT = 1883;       // Porta do Servidor
 
 // USUARIO E SENHA DO SERVIDOR MQTT
 
-const char *User_MQTT = ""; // Usuario MQTT
-const char *Pass_MQTT = ""; // Senha MQTT
+const char *User_MQTT = "autohome"; // Usuario MQTT
+const char *Pass_MQTT = "comida05"; // Senha MQTT
 
 // PINOS DO RELE
-int Rele1 = 12; // gas
-int Rele2 = 3;  // led
+int GAS = 12; // gas
+int Rele2 = 15;  // led
 
 int Contagem = 0;
 
@@ -43,8 +74,12 @@ void initWiFi()
   Serial.println(SSID);
   Serial.println("--Aguarde--");
 
+
   reconectWiFi();
+
+
 }
+
 
 void reconnectMQTT()
 {
@@ -87,7 +122,7 @@ void initMQTT()
 // Inicializar os Pinos
 void InitPinos()
 {
-  pinMode(Rele1, INPUT);  // DEFINE O PINO COMO ENTRADA
+  pinMode(GAS, INPUT);  // DEFINE O PINO COMO ENTRADA
   pinMode(Rele2, OUTPUT); // DEFINE O PINO COMO SAÍDA
   digitalWrite(Rele2, 0); // LED INICIA DESLIGADO
 }
@@ -128,6 +163,7 @@ void setup()
   InitSerial();
   initWiFi();
   initMQTT();
+ // bot_telegram();
 }
 
 void mqtt_callback(char *topic, byte *payload, unsigned int length)
@@ -152,12 +188,14 @@ void mqtt_callback(char *topic, byte *payload, unsigned int length)
       digitalWrite(Rele2, 1);
       MQTT.publish(TOPICO_PUB_1, "1");
       Serial.print("Status: Rele2 Ligou");
+     
     }
     else if (payloadStr.equals("0"))
     {
       digitalWrite(Rele2, 0);
       MQTT.publish(TOPICO_PUB_1, "0");
       Serial.print("Status: Rele2 desligado!");
+
     }
   }
 }
@@ -167,6 +205,37 @@ void loop()
 
   verificaConexaoWIFIMQTT(); // Verifica Conexão WIFI MQTT
   MQTT.loop();
-  mqtt_callback;
+//  mqtt_callback;
+  sensor_gas();
   delay(1000);
+
+   
+ 
 }
+
+void sensor_gas( void ){
+
+  status_gas = digitalRead(GAS);
+
+  if(status_gas == old_status_gas ) return;
+
+  old_status_gas = status_gas ;
+
+  if(status_gas == 0){
+    Serial.println("Vai Explodir");
+    MQTT.publish(TOPICO_PUB_1, "0");
+    MQTT.publish(TOPICO_PUB_2, "1");
+    bot.sendMessage(CHAT_ID, "Atenção! Existe a possibilidade de vazamento de gás em sua casa, o que pode representar um sério risco para você e sua família. Diante disso, é importante seguir algumas medidas de segurança para garantir a proteção de todos", "");
+    bot.sendMessage(CHAT_ID, "1. Não acenda qualquer objeto com chama. 2. Não ligue ou desligue qualquer aparelho elétrico, interruptores de luz, tomadas e nem mesmo telefone celular. 3.  Abra as janelas e portas da casa para permitir a circulação de ar. 4. Desligue a chave geral de energia elétrica. ", "");
+  }else{
+    Serial.println("Não Vai Explodir");
+    MQTT.publish(TOPICO_PUB_1, "1");
+    MQTT.publish(TOPICO_PUB_2, "0");
+  }
+
+}
+
+
+
+
+
